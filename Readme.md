@@ -15,6 +15,8 @@ Content from Rime projects have been converted to Hong Kong variants with the [O
 
 ## Generating the frequency list and bigrams
 
+`getFreq.py` generates frequency and bigram from the source files.
+
 *Real mode is used by default if the following flags are not configured*
 - `-t` or `--test` enables the testing mode, which generates bigram
 - `-r` or `--real` enables the real mode, which will 
@@ -22,7 +24,17 @@ Content from Rime projects have been converted to Hong Kong variants with the [O
 *The default path is `data/`*
 - `-p` or `--path` specifies the root of the dataset. 
 
-The files will be saved under `output`. `found.tsv` contains a frequency list of all words, `missing.tsv` contains all missing characters, `d-2gram` and `d-words` are bigrams and word frequency table by date.
+E.g.
+
+```
+python3 getFreq.py -r -p /User/ABC/AppleDaily/Data/
+```
+
+These files will be generated under `output`:
+- `found.tsv` contains a frequency list of all words, 
+- `missing.tsv` contains all missing characters, 
+- The `d-2gram` folder stores bigram data sorted by date.
+- The `d-words` folder stores word frequency table sorted by date.
 
 ## Release
 
@@ -30,7 +42,7 @@ You can use the frequency data without obtaining the source files. The `release/
 
 ## Acknowledgement
 
-I would like to thank everyone from CanCLID.
+I would like to thank everyone from [CanCLID](https://github.com/CanCLID).
 
 ## Reference
 
