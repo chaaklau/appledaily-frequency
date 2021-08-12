@@ -1,15 +1,15 @@
 # Frequency Table for Hong Kong Chinese (with Cantonese) from Apple Daily
 
-This is a frequency list generated all plain text data from Apple Daily, obtained from this backup source: https://github.com/appledailybackup/appledaily-archive-directory. All files from `apple-articles-plaintext-20020101-20210620.zip` have been used.
+This is a frequency list generated from Apple Daily plain text data, obtained from this backup source: https://github.com/appledailybackup/appledaily-archive-directory. All files from `apple-articles-plaintext-20020101-20210620.zip` have been used.
 
 Although Apple Daily is no longer operating in Hong Kong, the license status of the orginal dataset is unknown. This repo does not contain any source file, nor is the content from the source reconstructable from the data provided here. The author believes that using the frequency data from this repository does not violate the copyrights of Apple Daily.
 
 ## Construction of the frequence list
 
 The original data was word segmented using a trie (by longest string matching). These word lists have been used in the process:
-[Rime Essay(八股文)](https://github.com/rime/rime-essay)
-[Rime Cantonese](https://github.com/rime/rime-cantonese)
-[The words.hk list](https://words.hk/faiman/analysis/existingwordcount/)
+- [Rime Essay(八股文)](https://github.com/rime/rime-essay)
+- [Rime Cantonese](https://github.com/rime/rime-cantonese)
+- [The words.hk list](https://words.hk/faiman/analysis/existingwordcount/)
 
 Content from Rime projects have been converted to Hong Kong variants with the [OpenCC](https://github.com/BYVoid/OpenCC) tool before segmentation.
 
