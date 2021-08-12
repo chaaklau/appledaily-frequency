@@ -47,3 +47,7 @@ I would like to thank everyone from [CanCLID](https://github.com/CanCLID).
 ## Reference
 
 To be added.
+
+## License
+
+This dataset is released under the [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) license.
