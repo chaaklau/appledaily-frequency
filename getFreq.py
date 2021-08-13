@@ -1,29 +1,41 @@
-import sys, os, getopt, time, glob, collections
+import sys, os, getopt, time, glob, collections, re
 import marisa_trie
 from bs4 import BeautifulSoup
 import lxml, cchardet
 import opencc
-from nltk import flatten, bigrams, FreqDist
+from nltk import flatten, bigrams, ngrams, FreqDist
 from nltk.lm.preprocessing import pad_both_ends
 import pandas as pd
 
 mode = "real"
 mypath = "data/"
+task = "freq"
+punc = "[\u2000-\u206F\u3002\uff1f\uff01\uff0c\u3001\uff1b\uff1a\u201c\u201d\u2018\u2019\uff08\uff09\u300a\u300b\u3008\u3009\u3010\u3011\u300e\u300f\u300c\u300d\ufe43\ufe44\u3014\u3015\u2026\u2014\uff5e\ufe4f\uffe5\"']"
+mingram = 2
+maxgram = 6
 
-opts, args = getopt.getopt(sys.argv[1:], "trp:", ["test", "real", "path="])
+
+opts, args = getopt.getopt(
+    sys.argv[1:], "trhp:g:", ["test", "real", "head", "path=", "get="]
+)
 for o, a in opts:
     if o in ("-t", "--test"):
         mode = "test"
     if o in ("-r", "--real"):
         mode = "real"
+    if o in ("-h", "--head"):
+        mode = "head"
     if o in ("-p", "--path"):
         mypath = a
+    if o in ("-g", "--get"):
+        task = a
 
 missing = collections.Counter()
 found = collections.Counter()
+all_bigrams = FreqDist()
 
 ## Prepare directories
-os.system("mkdir -p output; cd output; mkdir -p d-2gram d-words")
+os.system("mkdir -p output; cd output; mkdir -p d-2gram d-words d-ngram")
 logfile = open("output/getfreq.log", "a")
 
 
@@ -60,7 +72,7 @@ def import_data(mode):
             "今日",
         ]
 
-    elif mode == "real":
+    elif mode == "real" or mode == "head":
         data_words_hk = pd.read_csv(
             "source/existingwordcount.csv",
             header=None,
@@ -124,17 +136,17 @@ def getcontent(f):
         return soup.get_text()
 
 
-def update_fdist(date, parsed_sentences):
-    tokens = flatten([list(pad_both_ends(sent, n=2)) for sent in parsed_sentences])
+def print_fdist(label, tokens):
     fdist_tokens = FreqDist(tokens)
-    with open("output/d-words/freq-" + date + ".tsv", "w") as file:
+    with open("output/" + label + ".tsv", "w") as file:
         for k, v in fdist_tokens.most_common():
             file.write(f"{k}\t{v}\n")
-    bgs = bigrams(tokens)
-    fdist_bigram = FreqDist(bgs)
-    with open("output/d-2gram/bigram-" + date + ".tsv", "w") as file:
-        for k, v in fdist_bigram.most_common():
-            file.write(f"{k}\t{v}\n")
+
+
+def update_fdist(date, parsed_sentences):
+    tokens = flatten([list(pad_both_ends(sent, n=2)) for sent in parsed_sentences])
+    print_fdist("d-words/freq-" + date, tokens)
+    # print_fdist("d-2gram/bigram-" + date, bigrams(tokens))
 
 
 def handle_sentence(sent, trie, parsed_sentences):
@@ -164,10 +176,36 @@ def handle_sentence(sent, trie, parsed_sentences):
 
 
 def parse(date, trie, corpus):
+    if task == "freq":
+        get_freq(date, trie, corpus)
+    elif task == "grams":
+        get_grams(date, trie, corpus)
+    elif task == "swc":
+        get_swc_stat(date, trie, corpus)
+
+
+def get_freq(date, trie, corpus):
     parsed_sentences = []
     for sent in corpus:
         handle_sentence(sent, trie, parsed_sentences)
     update_fdist(date, parsed_sentences)
+
+
+def get_grams(date, trie, corpus):
+    seg_gram = {}
+    for i in range(mingram, maxgram + 1):
+        seg_gram[i] = []
+    for sent in corpus:
+        segmented = re.sub(punc, " ", sent).split()
+        for seg in segmented:
+            for i in range(mingram, maxgram + 1):
+                seg_gram[i] += re.findall("(?=(\S{" + str(i) + "}))", seg)
+    for i in range(mingram, maxgram + 1):
+        print_fdist(f"d-ngram/char{i}gram-{date}", seg_gram[i])
+
+
+def get_swc_stat(date, trie, corpus):
+    pass
 
 
 def construct_trie(mode):
@@ -200,8 +238,10 @@ def process(mode, trie):
         ]
         parse("testing", trie, corpus)
 
-    elif mode == "real":
+    elif mode == "real" or mode == "head":
         all_dates = [d for d in glob.iglob(mypath + "*")]
+        if mode == "head":
+            all_dates = all_dates[:20]
         total_dates = len(all_dates)
         log(f"Obtained File list: {total_dates} dates in total.")
 

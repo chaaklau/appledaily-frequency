@@ -16,13 +16,23 @@ Content from Rime projects have been converted to Hong Kong variants with the [O
 ## Generating the frequency list and bigrams
 
 *Real mode is used by default if the following flags are not configured*
-- `-t` or `--test` enables the testing mode, which generates bigram
-- `-r` or `--real` enables the real mode, which will 
+- `-t` or `--test` enables the testing mode, which uses test data for the tasks
+- `-r` or `--real` enables the real mode, which uses the full data set
+- `-h` or `--head` enables the head mode, which uses only the first 20 items of the data set
+
+*Task*
+- `-g` or `--get` specifies the task to be performed. The three tasks are:
+- - `freq` (Generate word-based frequencies)
+- - `grams` (Generate n-grams by characters)
+- - `swc` (Statistics about Written Cantonese)
 
 *The default path is `data/`*
 - `-p` or `--path` specifies the root of the dataset. 
 
-The files will be saved under `output`. `found.tsv` contains a frequency list of all words, `missing.tsv` contains all missing characters, `d-2gram` and `d-words` are bigrams and word frequency table by date.
+The files will be saved under `output`. `found.tsv` contains a frequency list of all words, `missing.tsv` contains all missing characters, `d-2gram` and `d-words` are bigrams and word frequency table by date. If task is set to `grams`, all files will be outputted to `d-ngrams`.
+
+## Merging n-gram files
+`merge-ngrams.py` Merges individual sorted-by-date n-grams file into one big file.
 
 ## Release
 
