@@ -10,7 +10,7 @@ import pandas as pd
 mode = "real"
 mypath = "data/"
 task = "freq"
-punc = "[\u2000-\u206F\u3002\uff1f\uff01\uff0c\u3001\uff1b\uff1a\u201c\u201d\u2018\u2019\uff08\uff09\u300a\u300b\u3008\u3009\u3010\u3011\u300e\u300f\u300c\u300d\ufe43\ufe44\u3014\u3015\u2026\u2014\uff5e\ufe4f\uffe5\"']"
+punc = "[%:.,#/\\\-\u2000-\u206F\u3002\uff1f\uff01\uff0c\u3001\uff1b\uff1a\u201c\u201d\u2018\u2019\uff08\uff09\u300a\u300b\u3008\u3009\u3010\u3011\u300e\u300f\u300c\u300d\ufe43\ufe44\u3014\u3015\u2026\u2014\uff5e\ufe4f\uffe5\"']"
 mingram = 2
 maxgram = 6
 
@@ -125,8 +125,12 @@ def import_data(mode):
             w2 = converter.convert(w)
             if w2 != w:
                 words_t2hk.append(w2)
-        log(f"Added {len(words_t2hk)} HK orthographic vairants.")
-        return words + words_t2hk
+        log(f"Added {len(words_t2hk)} Hong Kong orthographic vairants.")
+
+        # Limit word size to four characters
+        trimmed = list(filter(lambda w: len(str(w)) < 5, words + words_t2hk))
+        log(f"Trimmed from {len(words + words_t2hk)} to {len(trimmed)}.")
+        return trimmed
 
 
 def getcontent(f):
@@ -144,7 +148,7 @@ def print_fdist(label, tokens):
 
 
 def update_fdist(date, parsed_sentences):
-    tokens = flatten([list(pad_both_ends(sent, n=2)) for sent in parsed_sentences])
+    tokens = flatten(parsed_sentences)
     print_fdist("d-words/freq-" + date, tokens)
     # print_fdist("d-2gram/bigram-" + date, bigrams(tokens))
 
@@ -155,20 +159,27 @@ def handle_sentence(sent, trie, parsed_sentences):
     parsed = []
     while right < len(sent):
         word = sent[left : right + 1]
+        peep = word
         if word not in missing:
             while right < len(sent) and (
-                (sent[left : right + 1].isalnum() and sent[left : right + 1].isascii())
-                or sent[left : right + 1] in trie
-                or trie.keys(sent[left : right + 1])
+                (peep.isalnum() and peep.isascii()) or peep in trie or trie.keys(peep)
             ):
+                if peep in trie:
+                    # log(f"Updating word to {peep}.")
+                    word = peep
+                elif peep.isalnum() and peep.isascii():
+                    # log(f"Updating Alphanumeric word {word}.")
+                    word = peep
+                else:
+                    # log(f"{peep} not in trie and not alphanum, longest word is {word}.")
+                    pass
                 right += 1
-        if left == right:
-            right += 1
-            missing[sent[left:right]] += 1
-            word = sent[left]
+                peep = sent[left : right + 1]
+            if not (word.isalnum() and word.isascii()):
+                found[word] += 1
         else:
-            word = sent[left:right]
-            found[word] += 1
+            right += 1
+            missing[word] += 1
         parsed += [word]
         left += len(word)
         right = left
@@ -187,7 +198,9 @@ def parse(date, trie, corpus):
 def get_freq(date, trie, corpus):
     parsed_sentences = []
     for sent in corpus:
-        handle_sentence(sent, trie, parsed_sentences)
+        segmented = re.sub(punc, " ", sent).split()
+        for seg in segmented:
+            handle_sentence(seg, trie, parsed_sentences)
     update_fdist(date, parsed_sentences)
 
 
