@@ -33,6 +33,7 @@ for o, a in opts:
 missing = collections.Counter()
 found = collections.Counter()
 all_bigrams = FreqDist()
+swc_stat = []
 
 ## Prepare directories
 os.system("mkdir -p output; cd output; mkdir -p d-2gram d-words d-ngram")
@@ -188,9 +189,9 @@ def handle_sentence(sent, trie, parsed_sentences):
 
 def parse(date, trie, corpus):
     if task == "freq":
-        get_freq(date, trie, corpus)
+        get_freq(date, trie, [obj.content for obj in corpus])
     elif task == "grams":
-        get_grams(date, trie, corpus)
+        get_grams(date, trie, corpus, [obj.content for obj in corpus])
     elif task == "swc":
         get_swc_stat(date, trie, corpus)
 
@@ -217,8 +218,38 @@ def get_grams(date, trie, corpus):
         print_fdist(f"d-ngram/char{i}gram-{date}", seg_gram[i])
 
 
+canto_unique = "[嘅嗰啲咗佢喺咁睇冇啩唔哋𠵱畀俾嚟]"
+mando_feature = "[那是的些沒了不]"
+canto_feature = "[嗰係嘅啲冇咗唔]"
+allquotes = "「[^「」]*」"
+
+
 def get_swc_stat(date, trie, corpus):
-    pass
+    for obj in corpus:
+        sent = obj.content
+        quote = "".join(re.findall(allquotes, sent))
+        matrix = re.sub(allquotes, " ", sent)
+        quote_canto_unique = re.findall(canto_unique, quote)
+        matrix_canto_unique = re.findall(canto_unique, matrix)
+        quote_mando_feature = re.findall(mando_feature, quote)
+        quote_canto_feature = re.findall(canto_feature, matrix)
+        matrix_mando_feature = re.findall(mando_feature, quote)
+        matrix_canto_feature = re.findall(canto_feature, matrix)
+    swc_stat.append(
+        {
+            "date": date,
+            "path": obj.path,
+            "totallength": len(sent),
+            "quotelength": len(quote),
+            "matrixlength": len(matrix),
+            "quote_canto_unique": len(quote_canto_unique),
+            "matrix_canto_unique": len(matrix_canto_unique),
+            "quote_mando_feature": len(quote_mando_feature),
+            "quote_canto_feature": len(quote_canto_feature),
+            "matrix_mando_feature": len(matrix_mando_feature),
+            "matrix_canto_feature": len(matrix_canto_feature),
+        }
+    )
 
 
 def construct_trie(mode):
@@ -265,20 +296,27 @@ def process(mode, trie):
             )
             corpus = []
             for f in all_articles:
-                corpus += [getcontent(f)]
+                corpus += [{"path": f, "content": getcontent(f)}]
             parse(datepath[-8:], trie, corpus)
 
 
 def print_lists():
-    log("Printing Missing Words")
-    with open("output/missing.tsv", "w") as file:
-        for k, v in missing.most_common():
-            file.write(f"{k}\t{v}\n")
 
-    log("Printing Found Words")
-    with open("output/found.tsv", "w") as file:
-        for k, v in found.most_common():
-            file.write(f"{k}\t{v}\n")
+    if task == "swc":
+        df = pd.DataFrame(swc_stat)
+        df.to_csv("output/swc_stat.tsv", sep="\t")
+    elif task == "freq":
+        log("Printing Missing Words")
+        with open("output/missing.tsv", "w") as file:
+            for k, v in missing.most_common():
+                file.write(f"{k}\t{v}\n")
+
+        log("Printing Found Words")
+        with open("output/found.tsv", "w") as file:
+            for k, v in found.most_common():
+                file.write(f"{k}\t{v}\n")
+    elif task == "grams":
+        pass
 
 
 # Run!
