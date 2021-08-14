@@ -189,9 +189,9 @@ def handle_sentence(sent, trie, parsed_sentences):
 
 def parse(date, trie, corpus):
     if task == "freq":
-        get_freq(date, trie, [obj.content for obj in corpus])
+        get_freq(date, trie, [obj["content"] for obj in corpus])
     elif task == "grams":
-        get_grams(date, trie, corpus, [obj.content for obj in corpus])
+        get_grams(date, trie, corpus, [obj["content"] for obj in corpus])
     elif task == "swc":
         get_swc_stat(date, trie, corpus)
 
@@ -226,30 +226,30 @@ allquotes = "「[^「」]*」"
 
 def get_swc_stat(date, trie, corpus):
     for obj in corpus:
-        sent = obj.content
+        sent = obj["content"]
         quote = "".join(re.findall(allquotes, sent))
         matrix = re.sub(allquotes, " ", sent)
         quote_canto_unique = re.findall(canto_unique, quote)
         matrix_canto_unique = re.findall(canto_unique, matrix)
         quote_mando_feature = re.findall(mando_feature, quote)
-        quote_canto_feature = re.findall(canto_feature, matrix)
-        matrix_mando_feature = re.findall(mando_feature, quote)
+        quote_canto_feature = re.findall(canto_feature, quote)
+        matrix_mando_feature = re.findall(mando_feature, matrix)
         matrix_canto_feature = re.findall(canto_feature, matrix)
-    swc_stat.append(
-        {
-            "date": date,
-            "path": obj.path,
-            "totallength": len(sent),
-            "quotelength": len(quote),
-            "matrixlength": len(matrix),
-            "quote_canto_unique": len(quote_canto_unique),
-            "matrix_canto_unique": len(matrix_canto_unique),
-            "quote_mando_feature": len(quote_mando_feature),
-            "quote_canto_feature": len(quote_canto_feature),
-            "matrix_mando_feature": len(matrix_mando_feature),
-            "matrix_canto_feature": len(matrix_canto_feature),
-        }
-    )
+        swc_stat.append(
+            {
+                "date": date,
+                "path": obj["path"],
+                "totallength": len(sent),
+                "quotelength": len(quote),
+                "matrixlength": len(matrix),
+                "quote_canto_unique": len(quote_canto_unique),
+                "matrix_canto_unique": len(matrix_canto_unique),
+                "quote_mando_feature": len(quote_mando_feature),
+                "quote_canto_feature": len(quote_canto_feature),
+                "matrix_mando_feature": len(matrix_mando_feature),
+                "matrix_canto_feature": len(matrix_canto_feature),
+            }
+        )
 
 
 def construct_trie(mode):
@@ -262,7 +262,7 @@ def construct_trie(mode):
 def process(mode, trie):
     log("Extracting data to form corpus.")
     if mode == "test":
-        corpus = [
+        content = [
             "𨋢字唔喺入面",
             "我今日食魚",
             "佢去食早餐",
@@ -280,7 +280,11 @@ def process(mode, trie):
             "飯我唔食",
             "早餐我唔食飯",
         ]
-        parse("testing", trie, corpus)
+        parse(
+            "testing",
+            trie,
+            [{"path": i, "content": content} for i, content in enumerate(content)],
+        )
 
     elif mode == "real" or mode == "head":
         all_dates = [d for d in glob.iglob(mypath + "*")]
