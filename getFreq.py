@@ -39,6 +39,11 @@ swc_stat = []
 os.system("mkdir -p output; cd output; mkdir -p d-2gram d-words d-ngram")
 logfile = open("output/getfreq.log", "a")
 
+## Prepare Cleanup Text
+cleanup = []
+with open('cleanup.txt', 'r') as file:
+    cleanup = file.readlines()
+cleanup = [l.strip() for l in sorted(cleanup, key=len, reverse=True)]
 
 def log(msg):
     print(msg)
@@ -138,7 +143,17 @@ def getcontent(f):
     with open(f, "r") as file:
         s = file.read()
         soup = BeautifulSoup(s, "lxml")
-        return soup.get_text()
+        if (soup.title):
+            soup.title.decompose()
+        h1tag = soup.h1
+        title = ''
+        if (h1tag):
+            title = soup.h1.get_text().strip().replace('\n',' ').replace('\r',' ')
+            soup.h1.decompose()
+        content = soup.get_text(' ')
+        for line in cleanup:
+            content = content.replace(line, '')
+        return {'title': title.strip(), 'content': content.strip()}
 
 
 def print_fdist(label, tokens):
@@ -191,7 +206,7 @@ def parse(date, trie, corpus):
     if task == "freq":
         get_freq(date, trie, [obj["content"] for obj in corpus])
     elif task == "grams":
-        get_grams(date, trie, corpus, [obj["content"] for obj in corpus])
+        get_grams(date, trie, [obj["content"] for obj in corpus])
     elif task == "swc":
         get_swc_stat(date, trie, corpus)
 
@@ -219,9 +234,19 @@ def get_grams(date, trie, corpus):
 
 
 canto_unique = "[嘅嗰啲咗佢喺咁睇冇啩唔哋𠵱畀俾嚟]"
-mando_feature = "[那是的些沒了不]"
-canto_feature = "[嗰係嘅啲冇咗唔]"
+mando_feature = "[那是的些沒了不他]"
+mando_exclude = "(剎那|亞利桑那|關塔那摩|巴塞羅那|那不勒斯|斯堪地那維亞|圭亞那|熱那亞|毗盧遮那|支那|是次|是日|是非|利是|唯命是從|頭頭是道|誰是誰非|似是而非|自以為是|俯捨皆是|撩是鬥非|莫衷一是|大吉利是|尤其是|目的|紅的|綠的|的士|波羅的海|的確|些微|些小|淹沒|沉沒|沒收|湮沒|口沒遮攔|沒落|埋沒|沒頂|了解|沒完沒了|了結|未了緣|了無生趣|不了了之|了哥|直截了當|了斷|一目了然|了無牽掛|了無新意|了然於胸|不過|不滿|不適|不如|不妨|不俗|不宜|不僅|不必|不利|不符|不果|不然|不死|急不及待|不一|意想不到|不論|不約而同|不忠|永不|不入|樂此不疲|有所不同|不足|不值|不妙|滔滔不絕|不務|不外乎|不良|不知幾|不斷|不同|不得了|他人|他信|他加祿|他國|他山之石|他日|他殺|他處|他鄉|其他|利他|無他|排他|左右而言他|維他|馬爾他|馬耳他)"
+canto_feature = "[嗰係嘅啲冇咗唔佢]"
+canto_exclude = "(關係|吱唔|咿唔)"
 allquotes = "「[^「」]*」"
+
+
+def count_canto_feature(s):
+    return len(re.findall(canto_feature, s)) - len(re.findall(canto_exclude, s))
+
+
+def count_mando_feature(s):
+    return len(re.findall(mando_feature, s)) - len(re.findall(mando_exclude, s))
 
 
 def get_swc_stat(date, trie, corpus):
@@ -229,25 +254,26 @@ def get_swc_stat(date, trie, corpus):
         sent = obj["content"]
         quote = "".join(re.findall(allquotes, sent))
         matrix = re.sub(allquotes, " ", sent)
-        quote_canto_unique = re.findall(canto_unique, quote)
-        matrix_canto_unique = re.findall(canto_unique, matrix)
-        quote_mando_feature = re.findall(mando_feature, quote)
-        quote_canto_feature = re.findall(canto_feature, quote)
-        matrix_mando_feature = re.findall(mando_feature, matrix)
-        matrix_canto_feature = re.findall(canto_feature, matrix)
+        quote_canto_unique = len(re.findall(canto_unique, quote))
+        matrix_canto_unique = len(re.findall(canto_unique, matrix))
+        quote_mando_feature = count_mando_feature(quote)
+        quote_canto_feature = count_canto_feature(quote)
+        matrix_mando_feature = count_mando_feature(matrix)
+        matrix_canto_feature = count_canto_feature(matrix)
         swc_stat.append(
             {
                 "date": date,
+                "title": obj["title"],
                 "path": obj["path"],
                 "totallength": len(sent),
                 "quotelength": len(quote),
                 "matrixlength": len(matrix),
-                "quote_canto_unique": len(quote_canto_unique),
-                "matrix_canto_unique": len(matrix_canto_unique),
-                "quote_mando_feature": len(quote_mando_feature),
-                "quote_canto_feature": len(quote_canto_feature),
-                "matrix_mando_feature": len(matrix_mando_feature),
-                "matrix_canto_feature": len(matrix_canto_feature),
+                "quote_canto_unique": quote_canto_unique,
+                "matrix_canto_unique": matrix_canto_unique,
+                "quote_mando_feature": quote_mando_feature,
+                "quote_canto_feature": quote_canto_feature,
+                "matrix_mando_feature": matrix_mando_feature,
+                "matrix_canto_feature": matrix_canto_feature,
             }
         )
 
@@ -283,7 +309,7 @@ def process(mode, trie):
         parse(
             "testing",
             trie,
-            [{"path": i, "content": content} for i, content in enumerate(content)],
+            [{"path": i, "title": "", "content": content} for i, content in enumerate(content)],
         )
 
     elif mode == "real" or mode == "head":
@@ -300,7 +326,7 @@ def process(mode, trie):
             )
             corpus = []
             for f in all_articles:
-                corpus += [{"path": f, "content": getcontent(f)}]
+                corpus += [{"path": f, **getcontent(f)}]
             parse(datepath[-8:], trie, corpus)
 
 
