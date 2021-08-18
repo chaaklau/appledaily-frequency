@@ -21,4 +21,4 @@ combined = (
     .set_index(["char"])
     .sum(axis=1)
 )
-combined.to_csv("output/essay-new.txt", sep="\t", header=None, float_format="%g")
+combined.to_csv("output/essay-new.txt", sep="\t", header=None, float_format="%u")
